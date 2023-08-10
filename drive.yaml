@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: engro-xms-dev-drive
+  name: engro-xms-dev-drive-pod
+  namespace: engro-xms-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: engro-xms-dev-drive
+  template:
+    metadata:
+      labels:
+        app: engro-xms-dev-drive
+    spec:
+      hostNetwork: true
+      containers:
+      - name: engro-xms-dev-drive-ctr
+        image: 324456836181.dkr.ecr.ap-south-1.amazonaws.com/xms-dev-drive-zeecorp:0.0.2
+        imagePullPolicy: ""
+        ports:
+        - containerPort: 3020
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: engro-xms-dev-drive-svc
+  namespace: engro-xms-dev
+spec:
+  ports:    
+  - port: 3020
+    targetPort: 3020
+  selector:
+    app: engro-xms-dev-drive
+  type: NodePort
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: engro-xms-dev-drive
+    environment: dev
+  namespace: engro-xms-dev
+  name: engro-xms-dev-drive
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/group.order: "2"
+    alb.ingress.kubernetes.io/target-type: instance
+    alb.ingress.kubernetes.io/group.name: engro-xms-dev-group
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443},{"HTTP":80}]'
+    alb.ingress.kubernetes.io/certificate-arn: 'arn:aws:acm:ap-south-1:324456836181:certificate/e14ce660-89c8-4dd1-9638-6bc3dc201343'
+spec:
+  ingressClassName: alb
+  rules:
+  - host: api-xms-zeecorp.engro.dev
+    http:
+      paths:
+      - path: /api/drive/v2
+        pathType: Prefix
+        backend:
+          service:
+            name: engro-xms-dev-drive-svc
+            port:
+              number: 3020
