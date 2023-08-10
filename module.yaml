@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: engro-xms-dev-module
+  name: engro-xms-dev-module-pod
+  namespace: engro-xms-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: engro-xms-dev-module
+  template:
+    metadata:
+      labels:
+        app: engro-xms-dev-module
+    spec:
+      hostNetwork: true
+      containers:
+      - name: engro-xms-dev-module-ctr
+        image: 324456836181.dkr.ecr.ap-south-1.amazonaws.com/xms-dev-module-zeecorp:0.0.3
+        imagePullPolicy: ""
+        ports:
+        - containerPort: 3002
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: engro-xms-dev-module-svc
+  namespace: engro-xms-dev
+spec:
+  ports:    
+  - port: 3002
+    targetPort: 3002
+  selector:
+    app: engro-xms-dev-module
+  type: NodePort
+      
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: engro-xms-dev-module
+    environment: dev
+  namespace: engro-xms-dev
+  name: engro-xms-dev-module
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: instance
+    alb.ingress.kubernetes.io/group.order: "3"
+    alb.ingress.kubernetes.io/group.name: engro-xms-dev-group
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: 'arn:aws:acm:ap-south-1:324456836181:certificate/e14ce660-89c8-4dd1-9638-6bc3dc201343'
+    #'arn:aws:acm:ap-south-1:984596564630:certificate/f819949e-702b-41c0-9677-6fc6645d4325'
+
+spec:
+  ingressClassName: alb
+  rules:
+  - host: api-xms-zeecorp.engro.dev
+    http:
+      paths:
+      - path: /api/module/v2
+        pathType: Prefix
+        backend:
+          service:
+            name: engro-xms-dev-module-svc
+            port:
+              number: 3002
+      

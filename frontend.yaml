@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: engro-xms-dev-frontend
+  name: engro-xms-dev-frontend-pod
+  namespace: engro-xms-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: engro-xms-dev-frontend
+  template:
+    metadata:
+      labels:
+        app: engro-xms-dev-frontend
+    spec:
+      hostNetwork: true
+      containers:
+      - name: engro-xms-dev-frontend-ctr
+        image: 324456836181.dkr.ecr.ap-south-1.amazonaws.com/xms-dev-frontend-config-zeecorp:0.0.3
+        imagePullPolicy: ""
+        ports:
+        - containerPort: 3003
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: engro-xms-dev-frontend-svc
+  namespace: engro-xms-dev
+spec:
+  ports:    
+  - port: 3003
+    targetPort: 3003
+  selector:
+    app: engro-xms-dev-frontend
+  type: NodePort
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: engro-xms-dev-frontend
+    environment: dev
+  namespace: engro-xms-dev
+  name: engro-xms-dev-frontend
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: instance
+    alb.ingress.kubernetes.io/group.order: "4"
+    alb.ingress.kubernetes.io/group.name: engro-xms-dev-group
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443},{"HTTP":80}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: 'arn:aws:acm:ap-south-1:324456836181:certificate/e14ce660-89c8-4dd1-9638-6bc3dc201343'
+spec:
+  ingressClassName: alb
+  rules:
+  - host: apifo-xms-zeecorp.engro.dev
+    http:
+      paths:
+      - path: /api/frontend/v2
+        pathType: Prefix
+        backend:
+          service:
+            name: engro-xms-dev-frontend-svc
+            port:
+              number: 3003
